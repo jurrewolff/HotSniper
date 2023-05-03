@@ -247,14 +247,33 @@ def example():
                 run(['{:.1f}GHz'.format(freq), 'maxFreq', 'slowDVFS'], get_instance(benchmark, parallelism, input_set='simsmall'))
 
 
+def multi_program():
+    base_configuration = ['4GHz']
+    benchmark_set = (
+        'parsec-blackscholes',
+        # 'parsec-blackscholes', # TODO - Commented for timefile vs magic
+    )
+
+    benchmarks = ''
+    for i, benchmark in enumerate(benchmark_set):
+        min_parallelism = get_feasible_parallelisms(benchmark)[0]
+        max_parallelism = get_feasible_parallelisms(benchmark)[-1] # TODO - for timefile vs magic
+        if i != 0:
+            benchmarks = benchmarks + ',' + get_instance(benchmark, max_parallelism, 'simsmall') # TODO - 'max_parallelism' instead of 'min_parallelism' for timefile vs magic
+        else:
+            benchmarks = benchmarks + get_instance(benchmark, max_parallelism, 'simsmall') # TODO - 'max_parallelism' instead of 'min_parallelism' for timefile vs magic
+
+    run(base_configuration, benchmarks)
+
+    
 def test_static_power():
     run(['4.0GHz', 'testStaticPower', 'slowDVFS'], get_instance('parsec-blackscholes', 3, input_set='simsmall'))
 
 
 def main():
-    example()
+    # example()
     #test_static_power()
-
+    multi_program()
 
 if __name__ == '__main__':
     main()

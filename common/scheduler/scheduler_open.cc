@@ -173,11 +173,6 @@ SchedulerOpen::SchedulerOpen(ThreadManager *thread_manager)
 		cout<<"\n[Scheduler] [Error]: Invalid system size: " << numberOfCores << ", expected rectangular-shaped system." << endl;
 		exit (1);
 	}
-	double ambientTemperature = Sim()->getCfg()->getFloat("periodic_thermal/ambient_temperature");
-    double maxTemperature = Sim()->getCfg()->getFloat("periodic_thermal/max_temperature");
-    double inactivePower = Sim()->getCfg()->getFloat("periodic_thermal/inactive_power");
-    double tdp = Sim()->getCfg()->getFloat("periodic_thermal/tdp");
-	thermalModel = new ThermalModel((unsigned int)coreRows, (unsigned int)coreColumns, Sim()->getCfg()->getString("periodic_thermal/thermal_model"), ambientTemperature, maxTemperature, inactivePower, tdp);
 
 	//Initialize the cores in the system.
 	for (int coreIterator=0; coreIterator < numberOfCores; coreIterator++) {
@@ -268,20 +263,6 @@ SchedulerOpen::SchedulerOpen(ThreadManager *thread_manager)
 	initMappingPolicy(Sim()->getCfg()->getString("scheduler/open/logic").c_str());
 	initDVFSPolicy(Sim()->getCfg()->getString("scheduler/open/dvfs/logic").c_str());
 	initMigrationPolicy(Sim()->getCfg()->getString("scheduler/open/migration/logic").c_str());
-
-	strncpy(hb_timefile_name, "/tmp/hb_timefile", sizeof(hb_timefile_name));
-	hb_timefile.open(hb_timefile_name, std::ios::trunc); // Closed in destructor
-	if (!hb_timefile.is_open()) {
-		cout << "\n[Scheduler] [Error]: Failed to open/create heartbeats timefile: " << endl;
-	}
-}
-
-/** SchedulerOpen
-    Destructor for Open Scheduler
-*/
-SchedulerOpen::~SchedulerOpen() { // TODO - Destructor is never called...
-	hb_timefile.close();
-	std::remove(hb_timefile_name);
 }
 
 /** initMappingPolicy
@@ -322,6 +303,13 @@ void SchedulerOpen::initDVFSPolicy(String policyName) {
 		float perCorePowerBudget = Sim()->getCfg()->getFloat("scheduler/open/dvfs/fixed_power/per_core_power_budget");
 		dvfsPolicy = new DVFSFixedPower(performanceCounters, coreRows, coreColumns, minFrequency, maxFrequency, frequencyStepSize, perCorePowerBudget);
 	} else if (policyName == "tsp") {
+		double ambientTemperature = Sim()->getCfg()->getFloat("periodic_thermal/ambient_temperature");
+    double maxTemperature = Sim()->getCfg()->getFloat("periodic_thermal/max_temperature");
+    double inactivePower = Sim()->getCfg()->getFloat("periodic_thermal/inactive_power");
+    double tdp = Sim()->getCfg()->getFloat("periodic_thermal/tdp");
+		String thermalModelFilename = Sim()->getCfg()->getString("periodic_thermal/thermal_model");
+		thermalModel = new ThermalModel((unsigned int)coreRows, (unsigned int)coreColumns, thermalModelFilename, ambientTemperature, maxTemperature, inactivePower, tdp);
+
 		dvfsPolicy = new DVFSTSP(thermalModel, performanceCounters, coreRows, coreColumns, minFrequency, maxFrequency, frequencyStepSize);
 	} //else if (policyName ="XYZ") {... } //Place to instantiate a new DVFS logic. Implementation is put in "policies" package.
 	else {
@@ -1283,13 +1271,6 @@ void SchedulerOpen::executeMigrationPolicy(SubsecondTime time) {
     This function is called periodically by Sniper at Interval of 100ns.
 */
 void SchedulerOpen::periodic(SubsecondTime time) {
-	char buff[21] = {0};
-	snprintf(buff, sizeof(buff), "%" PRIu64 "\n", time.getNS());
-
-	hb_timefile.seekp(0, std::ios::beg);
-	hb_timefile.write(buff, sizeof(buff));
-	hb_timefile.flush();
-
 	if (time.getNS () % 1000000 == 0) { //Error Checking at every 1ms. Can be faster but will have overhead in simulation time.
 		cout << "\n[Scheduler]: Time " << formatTime(time) << " [Active Tasks =  " << numberOfActiveTasks () << " | Completed Tasks = " <<  numberOfTasksCompleted () << " | Queued Tasks = "  << numberOfTasksInQueue () << " | Non-Queued Tasks  = " <<  numberOfTasksWaitingToSchedule () <<  " | Free Cores = " << numberOfFreeCores () << " | Active Tasks Requirements = " << totalCoreRequirementsOfActiveTasks () << " ] \n" << endl;
 
