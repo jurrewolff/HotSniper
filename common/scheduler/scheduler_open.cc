@@ -1207,6 +1207,29 @@ void SchedulerOpen::setFrequency(int coreCounter, int frequency) {
  * Set DVFS levels according to the used policy.
  */
 void SchedulerOpen::executeDVFSPolicy() {
+
+	// TODO - TESTING
+
+	std::vector<std::tuple<int,int>> threadAppIdMapping;
+	int num_threads = Sim()->getThreadManager()->getNumThreads();
+	cout << "[EXECUTEDVFSPOLICY][TESTING] Total number of threads is: " << num_threads << endl;
+	for (int tid = 0; tid < num_threads; tid++) {
+		app_id_t app_id =  Sim()->getThreadManager()->getThreadFromID(tid)->getAppId();
+		cout << "[EXECUTEDVFSPOLICY][TESTING] App ID for thread " << tid << " is " << app_id << endl;
+
+    threadAppIdMapping.push_back(std::make_tuple(tid, app_id));
+	}
+
+	std::vector<int> priorities = dvfsPolicy->getPriorities(threadAppIdMapping);
+
+	cout << "[EXECUTEDVFSPOLICY][TESTING] Thread priorities based on hb-data: ";
+	for (int p : priorities) {
+		cout << p << " ";
+	}
+	cout << endl;
+
+	// TODO - ENDTESTING
+
 	std::vector<int> oldFrequencies;
 	std::vector<bool> activeCores;
 	for (int coreCounter = 0; coreCounter < numberOfCores; coreCounter++) {
