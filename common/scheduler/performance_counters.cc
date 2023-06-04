@@ -6,6 +6,46 @@
 
 using namespace std;
 
+float getLastBeatValue(int appId, std::string targetColumn) {
+  std::string hbFilepath = std::to_string(appId) + ".hb.log";
+  std::ifstream hbLogfile(hbFilepath);
+  if (!hbLogfile.is_open()) {
+    std::cerr << "[PerformanceCounters] Could not open hb logfile "
+              << hbFilepath << endl;
+    return -1.0;
+  }
+
+  std::string header;
+  std::getline(hbLogfile, header);
+
+  std::string line;
+  std::string footer;
+  while (std::getline(hbLogfile, line)) {
+    footer = line;
+  }
+
+  if (footer == "") {
+    return -1.0;  // No heartbeat data logged yet.
+  }
+
+  std::istringstream issHeader(header);
+  std::istringstream issFooter(footer);
+  std::string token;
+  while (std::getline(issHeader, token, '\t')) {
+    std::string value;
+    std::getline(issFooter, value, '\t');
+
+    if (token == targetColumn) {
+      return std::stof(value);
+    }
+  }
+
+  std::cerr << "[PerformanceCounters] Could not find column " << targetColumn
+            << " in hb file " << endl;
+
+  return -1.0;
+}
+
 PerformanceCounters::PerformanceCounters(const char* output_dir, std::string instPowerFileNameParam, std::string instTemperatureFileNameParam, std::string instCPIStackFileNameParam)
     : outputDir(output_dir), instPowerFileName(instPowerFileNameParam), instTemperatureFileName(instTemperatureFileNameParam), instCPIStackFileName(instCPIStackFileNameParam) {
 
@@ -210,40 +250,17 @@ double PerformanceCounters::getIPSOfCore(int coreId) const {
 	return 1e6 * getFreqOfCore(coreId) / getCPIOfCore(coreId);
 }
 
+/**
+ * Get the last registered heartbeat timestamp.
+ */
 int PerformanceCounters::getLastBeat(int appId) const {
-	std::string target = std::to_string(appId) + ".hb.log";
-	std::ifstream appIdHbLogfile(target);
-	if (!appIdHbLogfile.is_open()) {
-		std::cerr << "[PerformanceCounters] Could not open hb logfile " << target << endl;
-		return -1;
-	}
+	return getLastBeatValue(appId, "Timestamp");
+}
 
-	std::string header;
-	std::getline(appIdHbLogfile, header);
-
-	std::string line;
-	std::string footer;
-	while (std::getline(appIdHbLogfile, line)) {
-		footer = line;
-	}
-
-	if (footer == "") {
-		return 0; // No heartbeat data logged yet.
-	}
-
-	std::istringstream issHeader(header);
-	std::istringstream issFooter(footer);
-	std::string token;
-	while (std::getline(issHeader, token, '\t')) {
-		std::string value;
-		std::getline(issFooter, value, '\t');
-
-		if (token == "Timestamp") {
-			return std::stoi(value);
-		}
-	}
-
-	std::cerr << "[PerformanceCounters] Could not find timestamp column in hb file " << target << endl;
-
-  return -1;
+/**
+ * Get the last registered heartbeat instant rate value (beats per second, over
+ * last two beats)
+ */
+float PerformanceCounters::getLastInstantRate(int appId) const {
+	return getLastBeatValue(appId, "Instant Rate");
 }
