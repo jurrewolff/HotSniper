@@ -27,6 +27,7 @@ public:
     void notifyFreqsOfCores(std::vector<int> frequencies);
 
     int getLastBeat(int appId) const;
+    float getLastInstantRate(int appId) const;
 
 private:
     std::vector<int> frequencies;

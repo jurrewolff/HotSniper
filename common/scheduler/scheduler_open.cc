@@ -16,6 +16,7 @@
 #include "policies/dvfsFixedPower.h"
 #include "policies/dvfsTSP.h"
 #include "policies/dvfsTestStaticPower.h"
+#include "policies/dvfsQoS.h"
 #include "policies/mapFirstUnused.h"
 
 #include <iomanip>
@@ -331,6 +332,30 @@ void SchedulerOpen::initDVFSPolicy(String policyName) {
 		thermalModel = new ThermalModel((unsigned int)coreRows, (unsigned int)coreColumns, thermalModelFilename, ambientTemperature, maxTemperature, inactivePower, tdp);
 
 		dvfsPolicy = new DVFSTSP(thermalModel, performanceCounters, coreRows, coreColumns, minFrequency, maxFrequency, frequencyStepSize);
+	} else if (policyName == "qos") {
+		// TODO - Build coreAppIdMap;
+		//				1. loop all threads
+		// 				2. Get core AND appId from each
+		//				3. Store in map: k=core, v=appId
+		//
+		// Q: The map must be updated whenever new thread to core mapping occurs...
+		// A: 1. Update getFrequencies() with new "threads" arg. (do building of map
+		//			 in getfrequencies itself.)
+		//		2. Have it as a public DVFSQoS value, which can then be updated each
+		//			 executeDVFSPolicy() call.
+		//		3. Pass the ThreadManager as a constructor variable. The policy can 
+		//			 then use it to fetch threads, cores and appIds itself.
+		//		
+		//		Notes: I like none of the options, but 3 seems best, because it does
+		//					 not need users of the policy to remember updating some state,
+		//					 like option 2. Also,option 1 is not legal, though we can make
+		//					 an overloaded function to use. But what to do with non-
+		//					 overloaded version then??
+		//
+
+		std::unordered_map<int, int> coreAppIdMap;
+		float qos = 30.0; // TODO - Should be configurable in base.cfg.
+		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, coreAppIdMap, qos);
 	} //else if (policyName ="XYZ") {... } //Place to instantiate a new DVFS logic. Implementation is put in "policies" package.
 	else {
 		cout << "\n[Scheduler] [Error]: Unknown DVFS Algorithm" << endl;
@@ -1207,6 +1232,26 @@ void SchedulerOpen::setFrequency(int coreCounter, int frequency) {
  * Set DVFS levels according to the used policy.
  */
 void SchedulerOpen::executeDVFSPolicy() {
+
+	// TODO - Discuss with Anuj if this functionality can be added as a virtual
+	//				function in the DVFSPolicy parent class.
+	//				The parent can have it defined as a no-op, and the DVFSQoS can then
+	//				override the method to run this func.
+	//				
+	//				This way the polymorphism gods won't get too angry. 
+	DVFSQoS* dvfsQoS = dynamic_cast<DVFSQoS*>(dvfsPolicy);
+	if (dvfsQoS != nullptr) {
+		dvfsQoS->coreAppIdMap.clear();
+
+		for(int i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
+			Thread *t = Sim()->getThreadManager()->getThreadFromID(i);
+			int coreId = t->getCore()->getId();
+			int appId = t->getAppId();
+			
+			dvfsQoS->coreAppIdMap[coreId] = appId;
+		}
+	}
+
 	std::vector<int> oldFrequencies;
 	std::vector<bool> activeCores;
 	for (int coreCounter = 0; coreCounter < numberOfCores; coreCounter++) {
