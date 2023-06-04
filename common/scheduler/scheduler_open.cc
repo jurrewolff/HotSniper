@@ -333,29 +333,14 @@ void SchedulerOpen::initDVFSPolicy(String policyName) {
 
 		dvfsPolicy = new DVFSTSP(thermalModel, performanceCounters, coreRows, coreColumns, minFrequency, maxFrequency, frequencyStepSize);
 	} else if (policyName == "qos") {
-		// TODO - Build coreAppIdMap;
-		//				1. loop all threads
-		// 				2. Get core AND appId from each
-		//				3. Store in map: k=core, v=appId
-		//
-		// Q: The map must be updated whenever new thread to core mapping occurs...
-		// A: 1. Update getFrequencies() with new "threads" arg. (do building of map
-		//			 in getfrequencies itself.)
-		//		2. Have it as a public DVFSQoS value, which can then be updated each
-		//			 executeDVFSPolicy() call.
-		//		3. Pass the ThreadManager as a constructor variable. The policy can 
-		//			 then use it to fetch threads, cores and appIds itself.
-		//		
-		//		Notes: I like none of the options, but 3 seems best, because it does
-		//					 not need users of the policy to remember updating some state,
-		//					 like option 2. Also,option 1 is not legal, though we can make
-		//					 an overloaded function to use. But what to do with non-
-		//					 overloaded version then??
-		//
+		// TODO - This variable should 1) be program specific 2) be set by the
+		//				program itself.
+		//				How can we do this? HB-API has means of setting target heart rate.
+		//				How can this target be parsed for each program? Maybe through hb
+		//				file? Do some of that research you do.
+		float qos = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/qos");
 
-		std::unordered_map<int, int> coreAppIdMap;
-		float qos = 30.0; // TODO - Should be configurable in base.cfg.
-		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, coreAppIdMap, qos);
+		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, qos);
 	} //else if (policyName ="XYZ") {... } //Place to instantiate a new DVFS logic. Implementation is put in "policies" package.
 	else {
 		cout << "\n[Scheduler] [Error]: Unknown DVFS Algorithm" << endl;
@@ -1243,7 +1228,7 @@ void SchedulerOpen::executeDVFSPolicy() {
 	if (dvfsQoS != nullptr) {
 		dvfsQoS->coreAppIdMap.clear();
 
-		for(int i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
+		for(uint64_t i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
 			Thread *t = Sim()->getThreadManager()->getThreadFromID(i);
 			int coreId = t->getCore()->getId();
 			int appId = t->getAppId();

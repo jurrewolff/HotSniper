@@ -6,14 +6,12 @@
 using namespace std;
 
 DVFSQoS::DVFSQoS(const PerformanceCounters *performanceCounters, int coreRows,
-                 int coreColumns, int maxFrequency, int minFrequency,
-                 unordered_map<int, int> coreAppIdMap, float qos)
+                 int coreColumns, int maxFrequency, int minFrequency, float qos)
     : performanceCounters(performanceCounters),
       coreRows(coreRows),
       coreColumns(coreColumns),
       maxFrequency(maxFrequency),
       minFrequency(minFrequency),
-      coreAppIdMap(coreAppIdMap),
       qos(qos) {
   for (int i = 0; i < coreRows * coreColumns; i++) {
     corePrevQosMapping[i] = -1.0;
