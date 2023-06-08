@@ -268,11 +268,10 @@ def multi_program():
     # By setting the scheduler/open/arrivalRate base.cfg parameter to 2, the
     # tasks can be set to arrive at the same time.
 
-    input_set = 'simsmall'
-    base_configuration = ['4GHz', "nothermal"] # nothermal because chip floorplan doesn't match 4-core config
+    input_set = 'simmedium'
+    base_configuration = ['4.0GHz', "nothermal", "qos"] # nothermal because chip floorplan doesn't match 4-core config
     benchmark_set = (
-        'parsec-blackscholes',
-        'parsec-blackscholes',
+        'parsec-x264',
     )
 
     if ENABLE_HEARTBEATS == True:
@@ -288,7 +287,7 @@ def multi_program():
 
     run(base_configuration, benchmarks)
 
-    
+
 def test_static_power():
     run(['4.0GHz', 'testStaticPower', 'slowDVFS'], get_instance('parsec-blackscholes', 3, input_set='simsmall'))
 

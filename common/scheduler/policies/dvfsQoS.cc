@@ -6,15 +6,17 @@
 using namespace std;
 
 DVFSQoS::DVFSQoS(const PerformanceCounters *performanceCounters, int coreRows,
-                 int coreColumns, int maxFrequency, int minFrequency, float qos)
+                 int coreColumns, int maxFrequency, int minFrequency,
+                 float margin, int step_size)
     : performanceCounters(performanceCounters),
       coreRows(coreRows),
       coreColumns(coreColumns),
       maxFrequency(maxFrequency),
       minFrequency(minFrequency),
-      qos(qos) {
+      margin(margin),
+      step_size(step_size) {
   for (int i = 0; i < coreRows * coreColumns; i++) {
-    corePrevQosMapping[i] = -1.0;
+    corePrevQosMapping[i] = -1.0f;
   }
 }
 
@@ -52,7 +54,7 @@ vector<int> DVFSQoS::getFrequencies(const vector<int> &oldFrequencies,
     }
 
     const float currentQos = performanceCounters->getLastInstantRate(appId);
-    if (currentQos < 0.0) {
+    if (currentQos < 0.0f) {
       cout << "[Scheduler][DVFS_QOS][DEBUG] Core " << coreCounter
            << " running appId " << appId
            << " has no hb data yet -> Seting max freq" << endl;
@@ -72,11 +74,20 @@ vector<int> DVFSQoS::getFrequencies(const vector<int> &oldFrequencies,
       corePrevQosMapping[coreCounter] = currentQos;
     }
 
-    // TODO - Step sizes and threshold values are arbitrary now, but smart
-    // things can be done.
-    const float threshold = qos * 0.1;
-    const float step_size = 250.0;
-    if (currentQos >= qos - threshold && currentQos <= qos + threshold) {
+    float qos = performanceCounters->getMinHeartrate(appId);
+    if (qos <= 0.0f) {  // -1.0 is error, 0.0 is unconfigured min val for app.
+      cout << "[Scheduler][DVFS_QOS][DEBUG] Could not get min heartrate for "
+              "core "
+           << coreCounter << " running appId " << appId << "-> Keeping old freq"
+           << endl;
+
+      frequencies.at(coreCounter) = oldFrequencies.at(coreCounter);
+      continue;
+    }
+
+    const float lowerBound = qos - (margin / 2.0f);
+    const float upperBound = qos + (margin / 2.0f);
+    if (currentQos >= lowerBound && currentQos <= upperBound) {
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter);
     } else if (currentQos > qos) {
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter) - step_size;

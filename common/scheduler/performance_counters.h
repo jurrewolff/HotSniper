@@ -26,8 +26,11 @@ public:
 
     void notifyFreqsOfCores(std::vector<int> frequencies);
 
+    float getMinHeartrate(int appId) const;
+    float getMaxHeartrate(int appId) const;
     int getLastBeat(int appId) const;
     float getLastInstantRate(int appId) const;
+    std::vector<float> getBeatHistory(int appId, unsigned int n) const;
 
 private:
     std::vector<int> frequencies;

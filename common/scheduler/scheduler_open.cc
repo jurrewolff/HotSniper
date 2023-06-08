@@ -338,9 +338,9 @@ void SchedulerOpen::initDVFSPolicy(String policyName) {
 		//				How can we do this? HB-API has means of setting target heart rate.
 		//				How can this target be parsed for each program? Maybe through hb
 		//				file? Do some of that research you do.
-		float qos = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/qos");
-
-		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, qos);
+		float margin = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/margin");
+		float step_size = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/step_size");
+		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, margin, step_size);
 	} //else if (policyName ="XYZ") {... } //Place to instantiate a new DVFS logic. Implementation is put in "policies" package.
 	else {
 		cout << "\n[Scheduler] [Error]: Unknown DVFS Algorithm" << endl;
