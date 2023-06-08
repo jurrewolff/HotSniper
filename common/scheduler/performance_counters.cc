@@ -6,44 +6,54 @@
 
 using namespace std;
 
-float getLastBeatValue(int appId, std::string targetColumn) {
-  std::string hbFilepath = std::to_string(appId) + ".hb.log";
-  std::ifstream hbLogfile(hbFilepath);
+vector<float> getLastNBeatValues(int appId, string targetColumn, unsigned int n) {
+  vector<float> beatValues;
+
+  string hbFilepath = to_string(appId) + ".hb.log";
+  ifstream hbLogfile(hbFilepath);
   if (!hbLogfile.is_open()) {
-    std::cerr << "[PerformanceCounters] Could not open hb logfile "
-              << hbFilepath << endl;
-    return -1.0;
+    throw ios_base::failure("could not open hb logfile: " + hbFilepath);
   }
 
-  std::string header;
-  std::getline(hbLogfile, header);
+  string header;
+  getline(hbLogfile, header);
 
-  std::string line;
-  std::string footer;
-  while (std::getline(hbLogfile, line)) {
-    footer = line;
+  string line;
+  vector<string> lines;
+  while (getline(hbLogfile, line)) {
+    lines.push_back(line);
   }
 
-  if (footer == "") {
-    return -1.0;  // No heartbeat data logged yet.
+  if (lines.size() == 0) {
+    throw out_of_range("no heartbeat data has been logged yet for appId " +
+                       to_string(appId));
   }
 
-  std::istringstream issHeader(header);
-  std::istringstream issFooter(footer);
-  std::string token;
-  while (std::getline(issHeader, token, '\t')) {
-    std::string value;
-    std::getline(issFooter, value, '\t');
+  if (lines.size() >= n) {  // Only keep newest 'n' timestamps
+    lines.erase(lines.begin(), lines.end() - n);
+  }
 
-    if (token == targetColumn) {
-      return std::stof(value);
+  for (string& line : lines) {
+    istringstream issHeader(header);
+    istringstream issLine(line);
+    string token;
+    while (getline(issHeader, token, '\t')) {
+      string value;
+      getline(issLine, value, '\t');
+
+      if (token == targetColumn) {
+        beatValues.push_back(stof(value));
+        break;
+      }
+    }
+
+    if (beatValues.empty()) {
+      throw runtime_error("column with name " + targetColumn +
+                          " does not exist in hb file");
     }
   }
 
-  std::cerr << "[PerformanceCounters] Could not find column " << targetColumn
-            << " in hb file " << endl;
-
-  return -1.0;
+  return beatValues;
 }
 
 PerformanceCounters::PerformanceCounters(const char* output_dir, std::string instPowerFileNameParam, std::string instTemperatureFileNameParam, std::string instCPIStackFileNameParam)
@@ -251,10 +261,66 @@ double PerformanceCounters::getIPSOfCore(int coreId) const {
 }
 
 /**
+ * Get the minimum heartrate for application with appId.
+ */
+float PerformanceCounters::getMinHeartrate(int appId) const {
+	vector<float> beatValues;
+
+	try {
+		beatValues = getLastNBeatValues(appId, "Min Rate", 1);
+	} catch(const std::exception& e) {
+		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
+		return -1.0;
+	}
+
+	if (beatValues.empty()) {
+		cout << "[PerformanceCounters] no heartbeat data found" << endl;
+		return -1.0;
+	}
+
+	return beatValues[0];
+}
+
+/**
+ * Get the maximum heartrate for application with appId.
+ */
+float PerformanceCounters::getMaxHeartrate(int appId) const {
+	vector<float> beatValues;
+
+	try {
+		beatValues = getLastNBeatValues(appId, "Max Rate", 1);
+	} catch(const std::exception& e) {
+		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
+		return -1.0;
+	}
+
+	if (beatValues.empty()) {
+		cout << "[PerformanceCounters] no heartbeat data found" << endl;
+		return -1.0;
+	}
+
+	return beatValues[0];
+}
+
+/**
  * Get the last registered heartbeat timestamp.
  */
 int PerformanceCounters::getLastBeat(int appId) const {
-	return getLastBeatValue(appId, "Timestamp");
+	vector<float> beatValues;
+
+	try {
+		beatValues = getLastNBeatValues(appId, "Timestamp", 1);
+	} catch(const std::exception& e) {
+		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
+		return -1;
+	}
+
+	if (beatValues.empty()) {
+		cout << "[PerformanceCounters] no heartbeat data found" << endl;
+		return -1;
+	}
+
+	return (int)beatValues[0];
 }
 
 /**
@@ -262,5 +328,39 @@ int PerformanceCounters::getLastBeat(int appId) const {
  * last two beats)
  */
 float PerformanceCounters::getLastInstantRate(int appId) const {
-	return getLastBeatValue(appId, "Instant Rate");
+	vector<float> beatValues;
+
+	try {
+		beatValues = getLastNBeatValues(appId, "Instant Rate", 1);
+	} catch (const std::exception& e) {
+		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
+		return -1.0;
+	}
+
+	if (beatValues.empty()) {
+		cout << "[PerformanceCounters] no heartbeat data found" << endl;
+		return -1.0;
+	}
+
+	return beatValues[0];
+}
+
+/**
+ * Get heartbeat timestamp history of 'n' number of records.
+ */
+vector<float> PerformanceCounters::getBeatHistory(int appId, unsigned int n) const {
+	vector<float> beatValues{};
+
+	try {
+		beatValues = getLastNBeatValues(appId, "Instant Rate", n);
+	} catch (const std::exception& e) {
+		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
+		return beatValues;
+	}
+
+	if (beatValues.empty()) {
+		cout << "[PerformanceCounters] no heartbeat data found" << endl;
+	}
+
+	return beatValues;
 }
