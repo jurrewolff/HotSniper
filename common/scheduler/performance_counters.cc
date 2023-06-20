@@ -6,6 +6,10 @@
 
 using namespace std;
 
+/** getLastNBeatValues
+    Get the most recent 'n' heartbeat values from 'targetColumn' for 'appId'.
+		If 'n' == 0, all records are returned.
+*/
 vector<float> getLastNBeatValues(int appId, string targetColumn, unsigned int n) {
   vector<float> beatValues;
 
@@ -29,7 +33,7 @@ vector<float> getLastNBeatValues(int appId, string targetColumn, unsigned int n)
                        to_string(appId));
   }
 
-  if (lines.size() >= n) {  // Only keep newest 'n' timestamps
+  if (n != 0 && lines.size() >= n) {  // Only keep newest 'n' timestamps
     lines.erase(lines.begin(), lines.end() - n);
   }
 
@@ -268,7 +272,7 @@ float PerformanceCounters::getMinHeartrate(int appId) const {
 
 	try {
 		beatValues = getLastNBeatValues(appId, "Min Rate", 1);
-	} catch(const std::exception& e) {
+	} catch(const exception& e) {
 		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
 		return -1.0;
 	}
@@ -289,7 +293,7 @@ float PerformanceCounters::getMaxHeartrate(int appId) const {
 
 	try {
 		beatValues = getLastNBeatValues(appId, "Max Rate", 1);
-	} catch(const std::exception& e) {
+	} catch(const exception& e) {
 		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
 		return -1.0;
 	}
@@ -310,7 +314,7 @@ int PerformanceCounters::getLastBeat(int appId) const {
 
 	try {
 		beatValues = getLastNBeatValues(appId, "Timestamp", 1);
-	} catch(const std::exception& e) {
+	} catch(const exception& e) {
 		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
 		return -1;
 	}
@@ -332,7 +336,7 @@ float PerformanceCounters::getLastInstantRate(int appId) const {
 
 	try {
 		beatValues = getLastNBeatValues(appId, "Instant Rate", 1);
-	} catch (const std::exception& e) {
+	} catch (const exception& e) {
 		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
 		return -1.0;
 	}
@@ -346,14 +350,16 @@ float PerformanceCounters::getLastInstantRate(int appId) const {
 }
 
 /**
- * Get heartbeat timestamp history of 'n' number of records.
+ * Get heartbeat timestamp history of 'n' number of records. For a full history,
+ * set 'n' to 0. If less than 'n' records are present, the return list will be
+ * shorter than 'n'!
  */
 vector<float> PerformanceCounters::getBeatHistory(int appId, unsigned int n) const {
-	vector<float> beatValues{};
+	vector<float> beatValues;
 
 	try {
-		beatValues = getLastNBeatValues(appId, "Instant Rate", n);
-	} catch (const std::exception& e) {
+		beatValues = getLastNBeatValues(appId, "Timestamp", n);
+	} catch (const exception& e) {
 		cout << "[PerformanceCounters] error getting beat values: " << e.what() << endl;
 		return beatValues;
 	}

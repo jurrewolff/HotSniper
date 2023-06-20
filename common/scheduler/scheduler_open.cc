@@ -333,11 +333,6 @@ void SchedulerOpen::initDVFSPolicy(String policyName) {
 
 		dvfsPolicy = new DVFSTSP(thermalModel, performanceCounters, coreRows, coreColumns, minFrequency, maxFrequency, frequencyStepSize);
 	} else if (policyName == "qos") {
-		// TODO - This variable should 1) be program specific 2) be set by the
-		//				program itself.
-		//				How can we do this? HB-API has means of setting target heart rate.
-		//				How can this target be parsed for each program? Maybe through hb
-		//				file? Do some of that research you do.
 		float margin = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/margin");
 		float step_size = Sim()->getCfg()->getFloat("scheduler/open/dvfs/qos/step_size");
 		dvfsPolicy = new DVFSQoS(performanceCounters, coreRows, coreColumns, maxFrequency, minFrequency, margin, step_size);
@@ -1218,23 +1213,17 @@ void SchedulerOpen::setFrequency(int coreCounter, int frequency) {
  */
 void SchedulerOpen::executeDVFSPolicy() {
 
-	// TODO - Discuss with Anuj if this functionality can be added as a virtual
-	//				function in the DVFSPolicy parent class.
-	//				The parent can have it defined as a no-op, and the DVFSQoS can then
-	//				override the method to run this func.
-	//				
-	//				This way the polymorphism gods won't get too angry. 
-	DVFSQoS* dvfsQoS = dynamic_cast<DVFSQoS*>(dvfsPolicy);
-	if (dvfsQoS != nullptr) {
-		dvfsQoS->coreAppIdMap.clear();
+	// TODO - the map might be substituted for a vector<int>, similar to
+	//				activeCores variable.
+	// 
+	dvfsPolicy->coreAppIdMap.clear();
 
-		for(uint64_t i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
-			Thread *t = Sim()->getThreadManager()->getThreadFromID(i);
-			int coreId = t->getCore()->getId();
-			int appId = t->getAppId();
-			
-			dvfsQoS->coreAppIdMap[coreId] = appId;
-		}
+	for(uint64_t i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
+		Thread *t = Sim()->getThreadManager()->getThreadFromID(i);
+		int coreId = t->getCore()->getId();
+		int appId = t->getAppId();
+
+		dvfsPolicy->coreAppIdMap[coreId] = appId;
 	}
 
 	std::vector<int> oldFrequencies;
