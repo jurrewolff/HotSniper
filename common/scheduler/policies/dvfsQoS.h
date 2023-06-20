@@ -5,7 +5,6 @@
 #ifndef __DVFS_QOS_H
 #define __DVFS_QOS_H
 
-#include <unordered_map>
 #include <vector>
 
 #include "dvfspolicy.h"
@@ -17,8 +16,6 @@ class DVFSQoS : public DVFSPolicy {
   virtual std::vector<int> getFrequencies(
       const std::vector<int> &oldFrequencies,
       const std::vector<bool> &activeCores);
-
-  std::unordered_map<int, int> coreAppIdMap;
 
  private:
   const PerformanceCounters *performanceCounters;

@@ -45,7 +45,7 @@ vector<int> DVFSQoS::getFrequencies(const vector<int> &oldFrequencies,
     int appId = -1;
     try {
       appId = coreAppIdMap.at(coreCounter);
-    } catch (std::out_of_range) {
+    } catch (out_of_range) {
       cout << "[Scheduler][DVFS_QOS][DEBUG] Core " << coreCounter
            << " has no assigned thread -> Setting min freq" << endl;
 
