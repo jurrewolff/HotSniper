@@ -1220,6 +1220,12 @@ void SchedulerOpen::executeDVFSPolicy() {
 
 	for(uint64_t i = 0 ; i < Sim()->getThreadManager()->getNumThreads() ; i++){
 		Thread *t = Sim()->getThreadManager()->getThreadFromID(i);
+
+		Core *c = t->getCore();
+		if (c == nullptr) {
+			continue; // has no core yet
+		}
+
 		int coreId = t->getCore()->getId();
 		int appId = t->getAppId();
 

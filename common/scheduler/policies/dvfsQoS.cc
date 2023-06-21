@@ -46,50 +46,48 @@ vector<int> DVFSQoS::getFrequencies(const vector<int> &oldFrequencies,
     try {
       appId = coreAppIdMap.at(coreCounter);
     } catch (out_of_range) {
-      cout << "[Scheduler][DVFS_QOS][DEBUG] Core " << coreCounter
-           << " has no assigned thread -> Setting min freq" << endl;
-
+      // Core has no thread assigned to it, set minimum freq
       frequencies.at(coreCounter) = minFrequency;
       continue;
     }
 
     const float currentQos = performanceCounters->getLastInstantRate(appId);
     if (currentQos < 0.0f) {
-      cout << "[Scheduler][DVFS_QOS][DEBUG] Core " << coreCounter
-           << " running appId " << appId
-           << " has no hb data yet -> Seting max freq" << endl;
-
+      // Core has no heartbeat data yet
       frequencies.at(coreCounter) = maxFrequency;
       continue;
     }
 
     if (currentQos == corePrevQosMapping[coreCounter]) {
-      cout << "[Scheduler][DVFS_QOS][DEBUG] Core " << coreCounter
-           << " running appId " << appId
-           << " its hb data has not updated -> Keeping old freq" << endl;
-
+      // hb data not updated, keep old freq
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter);
       continue;
     } else {
       corePrevQosMapping[coreCounter] = currentQos;
     }
 
-    float qos = performanceCounters->getMinHeartrate(appId);
-    if (qos <= 0.0f) {  // -1.0 is error, 0.0 is unconfigured min val for app.
-      cout << "[Scheduler][DVFS_QOS][DEBUG] Could not get min heartrate for "
-              "core "
-           << coreCounter << " running appId " << appId << "-> Keeping old freq"
-           << endl;
+    float targetQoS = performanceCounters->getMinHeartrate(appId);
+    if (abs(targetQoS) < 0.00001) {  // Check for approximate 0
+      // Unconfigured min qos value for app. Set max freq.
+      frequencies.at(coreCounter) = maxFrequency;
+      continue;
+    }
+
+    if (targetQoS <= 0.0f) {
+      // Error getting the target qos value. Keep old freq.
+      cout << "[Scheduler][DVFS_QOS] error getting the target QoS for app ID "
+           << appId << " running on core " << coreCounter
+           << " -> keeping previous frequency" << endl;
 
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter);
       continue;
     }
 
-    const float lowerBound = qos - (margin / 2.0f);
-    const float upperBound = qos + (margin / 2.0f);
+    const float lowerBound = targetQoS - (margin / 2.0f);
+    const float upperBound = targetQoS + (margin / 2.0f);
     if (currentQos >= lowerBound && currentQos <= upperBound) {
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter);
-    } else if (currentQos > qos) {
+    } else if (currentQos > targetQoS) {
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter) - step_size;
     } else {
       frequencies.at(coreCounter) = oldFrequencies.at(coreCounter) + step_size;
