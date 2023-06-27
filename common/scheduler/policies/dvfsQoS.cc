@@ -1,5 +1,6 @@
 #include "dvfsQoS.h"
 
+#include <cmath>
 #include <iomanip>
 #include <iostream>
 
@@ -67,7 +68,7 @@ vector<int> DVFSQoS::getFrequencies(const vector<int> &oldFrequencies,
     }
 
     float targetQoS = performanceCounters->getMinHeartrate(appId);
-    if (abs(targetQoS) < 0.00001) {  // Check for approximate 0
+    if (std::abs(targetQoS) < 0.00001) {  // Check for approximate 0
       // Unconfigured min qos value for app. Set max freq.
       frequencies.at(coreCounter) = maxFrequency;
       continue;
