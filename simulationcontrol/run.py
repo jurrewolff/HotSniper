@@ -271,8 +271,8 @@ def multi_program():
     input_set = 'simmedium'
     base_configuration = ['4.0GHz', "nothermal", "qos"] # nothermal because chip floorplan doesn't match 4-core config
     benchmark_set = (
-        'parsec-fluidanimate',
         'parsec-x264',
+        'parsec-blackscholes',
     )
 
     if ENABLE_HEARTBEATS == True:
@@ -280,7 +280,6 @@ def multi_program():
 
     benchmarks = ''
     for i, benchmark in enumerate(benchmark_set):
-        # min_parallelism = 5
         min_parallelism = get_feasible_parallelisms(benchmark)[0]
         if i != 0:
             benchmarks = benchmarks + ',' + get_instance(benchmark, min_parallelism, input_set)
