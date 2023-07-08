@@ -223,6 +223,10 @@ def plot_hb_histogram(run, force_recreate=False):
         timestamps = [int(x) for x in timestamps]
         interval_diffs = get_interval_diffs(timestamps)
 
+        if len(interval_diffs) == 0:
+            print("no intervals for hb log {}, skipping histogram generation".format(logfile))
+            continue
+
         # Freedman-Diaconis rule
         q1, q3 = np.percentile(interval_diffs, [25, 75])
         iqr = q3 - q1
