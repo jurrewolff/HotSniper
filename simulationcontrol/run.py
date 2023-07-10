@@ -269,10 +269,10 @@ def multi_program():
     # tasks can be set to arrive at the same time.
 
     input_set = 'simsmall'
-    base_configuration = ['4.0GHz', "maxFreq", "nothermal"] # nothermal because chip floorplan doesn't match 4-core config
+    base_configuration = ['4.0GHz', "ondemand", "coldestCoreMigration"] # nothermal because chip floorplan doesn't match 4-core config
     benchmark_set = (
-        'parsec-blackscholes',
-        # 'parsec-x264',
+        'parsec-swaptions',
+        'parsec-swaptions',
     )
 
     if ENABLE_HEARTBEATS == True:
@@ -296,21 +296,24 @@ def data_collection():
     # TODO - 1. Config so that 1 proc can run while barely overheating
     #        2. Add second proc (scheduled next to the first). Hope that this
     #           causes overheat.
-    #        3. Create simple policy that upon overheat, equally reduces freq
-    #           resulting in stable temp and equal penalization.
+    #        3. Create simple policy that upon overheat, equally reduces hb perf
+    #           (NOT freq directly!!) resulting in stable temp and equal
+    #           penalization.
     #
 
+    ghz_runs = ["3.0GHz", "2.0GHz", "1.0GHz"]
+
     input_set = 'simsmall'
-    base_configuration = ['4.0GHz', "hb_enabled", "maxFreq"]
+    base_configuration = ["hb_enabled", "maxFreq", "nothermal"]
     benchmark_set = (
-        'parsec-blackscholes',
+        # 'parsec-blackscholes',
+        'parsec-streamcluster',
         'parsec-swaptions',
         'parsec-canneal',
+        'parsec-x264',
         'parsec-fluidanimate',
         'parsec-bodytrack',
         'parsec-dedup',
-        'parsec-streamcluster',
-        'parsec-x264',
     )
 
     for benchmark in benchmark_set:
@@ -318,7 +321,9 @@ def data_collection():
             input_set = 'simmedium'
 
         min_parallelism = get_feasible_parallelisms(benchmark)[0]
-        run(base_configuration, get_instance(benchmark, min_parallelism, input_set))
+
+        for ghz in ghz_runs:
+            run(base_configuration + [ghz], get_instance(benchmark, min_parallelism, input_set))
 
 
 def test_static_power():
